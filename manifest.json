@@ -1,20 +1,21 @@
 {
-  "name": "LitHeal",
+  "name": "LitHeal • Tu Universo de Lectura",
   "short_name": "LitHeal",
-  "start_url": "index.html",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#050505",
   "theme_color": "#0B090A",
+  "scope": "./",
   "icons": [
     {
-      "src": "stitch.jpg",
+      "src": "icon-192.png",
       "sizes": "192x192",
-      "type": "image/jpeg"
+      "type": "image/png"
     },
     {
-      "src": "stitch.jpg",
+      "src": "icon-512.png",
       "sizes": "512x512",
-      "type": "image/jpeg"
+      "type": "image/png"
     }
   ]
 }

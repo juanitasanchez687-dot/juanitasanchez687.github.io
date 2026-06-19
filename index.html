@@ -172,7 +172,7 @@
                     <input type="text" id="manual-author" placeholder="Autor / Escritor *" class="w-full p-3.5 bg-zinc-900 border border-zinc-800 rounded-xl focus:outline-none focus:border-[#FF4D6D]">
                     <div class="grid grid-cols-2 gap-2">
                         <input type="text" id="manual-saga" placeholder="Saga" class="w-full p-3.5 bg-zinc-900 border border-zinc-800 rounded-xl focus:outline-none">
-                        <input type="number" id="manual-pages" placeholder="Páginas" class="w-full p-3.5 bg-zinc-900 border border-zinc-800 rounded-xl focus:outline-none">
+                        <input type="number" id="manual-pages" placeholder="Páginas Totales" class="w-full p-3.5 bg-zinc-900 border border-zinc-800 rounded-xl focus:outline-none">
                     </div>
                     <select id="manual-genre" class="w-full p-3.5 bg-zinc-900 border border-zinc-800 rounded-xl focus:outline-none text-zinc-300">
                         <option value="Fantasía Romántica / New Adult">Fantasía Romántica / New Adult</option>
@@ -367,28 +367,40 @@
         function closeManualModal() { document.getElementById('manual-modal').classList.add('hidden'); }
 
         function addManualBook() {
-            const title = document.getElementById('manual-title').value.trim();
-            const author = document.getElementById('manual-author').value.trim();
-            let customCover = document.getElementById('manual-custom-cover').value.trim();
-            if (!title || !author) return alert("Por favor rellena los campos críticos con (*)");
+    const title = document.getElementById('manual-title').value.trim();
+    const author = document.getElementById('manual-author').value.trim();
+    const pagesInput = document.getElementById('manual-pages').value.trim(); // Nueva variable
+    let customCover = document.getElementById('manual-custom-cover').value.trim();
+    
+    // Validación: ahora incluimos 'pagesInput' como obligatorio
+    if (!title || !author || !pagesInput) {
+        return alert("Por favor rellena los campos críticos con (*), incluyendo el número de páginas.");
+    }
 
-            if(!customCover) customCover = `https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=400&q=80`;
+    if(!customCover) customCover = `https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=400&q=80`;
 
-            const manualBook = {
-                id: 'm-' + Date.now(),
-                title: title,
-                authors: author,
-                cover: customCover,
-                pages: parseInt(document.getElementById('manual-pages').value) || 350,
-                description: 'Cargado mediante el gestor manual del ecosistema.',
-                saga: document.getElementById('manual-saga').value.trim() || 'Autoconclusivo',
-                tropes: document.getElementById('manual-tropes').value.trim() || 'no especificado',
-                genre: document.getElementById('manual-genre').value,
-                state: 'TBR', progressPages: 0, rating: 0, romance: 0, spicy: 0, emotional: 0, downloaded: false
-            };
+    const manualBook = {
+        id: 'm-' + Date.now(),
+        title: title,
+        authors: author,
+        cover: customCover,
+        pages: parseInt(pagesInput), // Aquí usamos el valor capturado arriba
+        description: 'Cargado mediante el gestor manual del ecosistema.',
+        saga: document.getElementById('manual-saga').value.trim() || 'Autoconclusivo',
+        tropes: document.getElementById('manual-tropes').value.trim() || 'no especificado',
+        genre: document.getElementById('manual-genre').value,
+        state: 'TBR', 
+        progressPages: 0, 
+        rating: 0, 
+        romance: 0, 
+        spicy: 0, 
+        emotional: 0, 
+        downloaded: false
+    };
 
-            db.push(manualBook);
-            save();
+    db.push(manualBook);
+    save();
+    // ... resto del código (closeManualModal, renderAll, etc.)
             closeManualModal();
             renderAll();
             openBookModal(manualBook);
@@ -402,14 +414,15 @@
         }
 
         function bindOnlineBook(book) {
-            let item = db.find(x => x.title.toLowerCase() === book.title.toLowerCase());
-            if (!item) {
-                item = { ...book, state: 'TBR', progressPages: 0, rating: 0, romance: 0, spicy: 0, emotional: 0, downloaded: false };
-                db.push(item);
-                save();
-            }
-            openBookModal(item);
-        }
+    let item = db.find(x => x.id === book.id); // Buscamos por ID único
+    if (!item) {
+        item = { ...book, state: 'TBR', progressPages: 0, rating: 0, romance: 0, spicy: 0, emotional: 0 };
+        db.push(item);
+        save();
+    }
+    // Abrimos el modal para que puedas editar las páginas ahí mismo
+    openBookModal(item);
+}
 
         function renderAll() {
             renderUniformCatalog('grid-tbr', 'TBR');
@@ -508,7 +521,7 @@
             document.getElementById('detail-meta').innerHTML = `
                 <div><b>Saga o Volumen:</b> <span class="text-zinc-200 ml-1">${b.saga || 'Autoconclusivo'}</span></div>
                 <div><b>Categoría de Estante:</b> <span class="text-zinc-200 ml-1">${b.genre || 'Fantasía Romántica'}</span></div>
-                <div><b>Páginas Totales:</b> <span class="text-zinc-200 ml-1">${b.pages || '350'} págs.</span></div>
+                <div><b>Páginas Totales:</b> <input type="number" value="${b.pages || 0}" onchange="updateBookField('pages', parseInt(this.value))" class="bg-zinc-900 border border-zinc-800 rounded px-1 w-20"></div>
                 <div><b>Tropos Registrados:</b> <span class="text-[#FF758F] font-bold ml-1">${b.tropes || 'no especificado'}</span></div>
                 <div class="pt-3 text-zinc-400 leading-relaxed text-[11px] border-t border-zinc-900/90 mt-3">${b.description || 'Sin sinopsis cargada en el caché.'}</div>
             `;
@@ -532,16 +545,21 @@
                     </div>
                 `;
             } else if (b.state === 'Leyendo') {
-                dyn.innerHTML = `
-                    <div class="bg-zinc-950 rounded-2xl p-4 border border-zinc-900 flex items-center justify-between mt-4 shadow-inner">
-                        <div class="flex flex-col">
-                            <label class="text-[8px] font-black text-zinc-500 uppercase tracking-widest">Páginas Leídas</label>
-                            <input type="number" id="modal-prog-val" value="${b.progressPages || 0}" class="w-24 p-2 bg-zinc-900 border border-zinc-800 rounded-xl font-black text-center mt-1 text-xs text-white focus:border-[#FF4D6D] focus:outline-none">
-                        </div>
-                        <span class="text-xs text-zinc-500 font-bold">de ${b.pages} pág.</span>
-                        <button onclick="updateProgValue()" class="bg-gradient-to-r from-[#FF4D6D] to-[#C9184A] text-white text-xs px-5 py-3 rounded-xl font-black shadow-lg active:scale-95 transition-all">Actualizar</button>
-                    </div>
-                `;
+                  dyn.innerHTML = `
+                    <div class="bg-zinc-950 rounded-2xl p-4 border border-zinc-900 mt-4 shadow-inner space-y-4">
+                    <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="text-[8px] font-black text-zinc-500 uppercase tracking-widest">Páginas Leídas</label>
+                    <input type="number" id="modal-prog-pages" value="${b.progressPages || 0}" oninput="syncProgress('pages')" class="w-full p-3 bg-zinc-900 border border-zinc-800 rounded-xl font-black text-center mt-1 text-xs text-white focus:border-[#FF4D6D]">
+                </div>
+                <div>
+                    <label class="text-[8px] font-black text-zinc-500 uppercase tracking-widest">% Completado</label>
+                    <input type="number" id="modal-prog-percent" value="${Math.round((b.progressPages / b.pages) * 100) || 0}" oninput="syncProgress('percent')" class="w-full p-3 bg-zinc-900 border border-zinc-800 rounded-xl font-black text-center mt-1 text-xs text-white focus:border-[#FF4D6D]">
+                </div>
+            </div>
+            <button onclick="saveProgress()" class="w-full bg-gradient-to-r from-[#FF4D6D] to-[#C9184A] text-white text-xs py-3 rounded-xl font-black shadow-lg active:scale-95 transition-all">Guardar Progreso</button>
+        </div>
+    `;
             } else if (b.state === 'Leído') {
                 dyn.innerHTML = `
                     <div class="bg-zinc-950 rounded-2xl p-5 border border-zinc-900 space-y-3.5 mt-4 shadow-md">
@@ -570,15 +588,30 @@
             save(); openBookModal(selectedBook);
         }
 
-        function updateProgValue() {
-            const val = parseInt(document.getElementById('modal-prog-val').value) || 0;
-            selectedBook.progressPages = Math.min(val, selectedBook.pages);
-            if(selectedBook.progressPages === selectedBook.pages) {
-                selectedBook.state = 'Leído';
-            }
-            save(); openBookModal(selectedBook);
-        }
+        function syncProgress(type) {
+    const pagesInput = document.getElementById('modal-prog-pages');
+    const percentInput = document.getElementById('modal-prog-percent');
+    const total = selectedBook.pages || 0;
+    if (total === 0) return;
 
+    if (type === 'pages') {
+        let pgs = parseInt(pagesInput.value) || 0;
+        percentInput.value = Math.round((pgs / total) * 100);
+    } else {
+        let pct = parseInt(percentInput.value) || 0;
+        pagesInput.value = Math.round((pct / 100) * total);
+    }
+}
+
+function saveProgress() {
+    const val = parseInt(document.getElementById('modal-prog-pages').value) || 0;
+    selectedBook.progressPages = Math.min(val, selectedBook.pages);
+    if(selectedBook.progressPages >= selectedBook.pages && selectedBook.pages > 0) {
+        selectedBook.state = 'Leído';
+    }
+    save(); 
+    openBookModal(selectedBook);
+}
         function setBookState(st) {
             let target = db.find(b => b.title.toLowerCase() === selectedBook.title.toLowerCase());
             if(!target) {
@@ -698,6 +731,14 @@
                     .catch(err => console.log('Pasarela offline fallida.', err));
             });
         }
+        function updateBookField(field, value) {
+    if (selectedBook) {
+        selectedBook[field] = value;
+        save(); // Guarda en localStorage
+        renderAll(); // Actualiza la vista principal para reflejar cambios
+    }
+}
     </script>
 </body>
+</html>
 </html>
